@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 from fastapi.responses import StreamingResponse
-import openai
+from openai import AzureOpenAI
 import logging
 
 from datetime import datetime
@@ -17,8 +17,16 @@ from .limiter import get_real_ipaddr, limiter
 from .divination import DivinationFactory
 from .file_logger import file_logger
 
-openai.api_key = settings.api_key
-openai.api_base = settings.api_base
+
+# gets the API Key from environment variable AZURE_OPENAI_API_KEY
+client = AzureOpenAI(
+    # https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning
+    api_version="2023-05-15",
+    # https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal#create-a-resource
+    azure_endpoint=settings.api_base,
+    api_key=settings.api_key,
+)
+
 router = APIRouter()
 _logger = logging.getLogger(__name__)
 STOP_WORDS = [
@@ -80,7 +88,7 @@ async def divination(
     prompt, system_prompt = divination_obj.build_prompt(divination_body)
 
     def get_openai_generator():
-        openai_stream = openai.ChatCompletion.create(
+        openai_stream = client.chat.completions.create(
             model=settings.model,
             max_tokens=1000,
             temperature=0.9,
@@ -95,8 +103,8 @@ async def divination(
             ]
         )
         for event in openai_stream:
-            if "content" in event["choices"][0].delta:
-                current_response = event["choices"][0].delta.content
+            if event.choices[0].delta.content != None:
+                current_response = event.choices[0].delta.content
                 yield f"data: {json.dumps(current_response)}\n\n"
 
     return StreamingResponse(get_openai_generator(), media_type='text/event-stream')
