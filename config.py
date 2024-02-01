@@ -10,6 +10,7 @@ logging.basicConfig(
 
 
 class Settings(BaseSettings):
+    vendor: str = "openai"
     api_key: str = "sk-xxx"
     api_base: str = "https://api.openai.com/v1"
     model: str = "gpt-3.5-turbo"

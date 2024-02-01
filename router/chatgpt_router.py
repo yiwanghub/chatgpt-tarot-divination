@@ -1,7 +1,7 @@
 import json
 from typing import Optional
 from fastapi.responses import StreamingResponse
-from openai import AzureOpenAI
+from openai import AzureOpenAI, OpenAI
 import logging
 
 from datetime import datetime
@@ -19,13 +19,20 @@ from .file_logger import file_logger
 
 
 # gets the API Key from environment variable AZURE_OPENAI_API_KEY
-client = AzureOpenAI(
-    # https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning
-    api_version="2023-05-15",
-    # https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal#create-a-resource
-    azure_endpoint=settings.api_base,
+client = OpenAI(
+    base_url=settings.api_base,
     api_key=settings.api_key,
 )
+
+if settings.vendor == 'azure':
+    # gets the API Key from environment variable AZURE_OPENAI_API_KEY
+    client = AzureOpenAI(
+        # https://learn.microsoft.com/en-us/azure/ai-services/openai/reference#rest-api-versioning
+        api_version="2023-05-15",
+        # https://learn.microsoft.com/en-us/azure/cognitive-services/openai/how-to/create-resource?pivots=web-portal#create-a-resource
+        azure_endpoint=settings.api_base,
+        api_key=settings.api_key,
+    )
 
 router = APIRouter()
 _logger = logging.getLogger(__name__)
